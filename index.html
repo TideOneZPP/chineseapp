@@ -365,6 +365,31 @@ function pickZh(){const vs=speechSynthesis.getVoices();zhVoice=vs.find(v=>/zh[-_
 if('speechSynthesis' in window){pickZh();speechSynthesis.onvoiceschanged=pickZh}
 function speak(text,rate=.85){if(!('speechSynthesis' in window))return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='zh-CN';u.rate=rate;u.pitch=1;if(zhVoice)u.voice=zhVoice;speechSynthesis.speak(u)}
 
+/* —— 导师层 Tutor Layer：时长边界 / 过程鼓励 / 复习优先 —— */
+let _sessionStart=Date.now(), _restNudged=false;
+function resetSession(){ _sessionStart=Date.now(); _restNudged=false; }
+function sessionShouldStop(){
+  const min=(Date.now()-_sessionStart)/60000;
+  if(min>=30) return 'force';
+  if(min>=20 && !_restNudged){_restNudged=true; return 'rest';}
+  return null;
+}
+const PRAISE_DEFAULT=['⭐','👏','🎯','👍','💯','✨'];
+const PRAISE_FAST=['⚡ 太快了!','🚀 闪电速度!','💨 反应真快!'];
+const PRAISE_REVIEW=['✨ 错字改对了!','🌟 你进步了!','👍 抓到难点了!'];
+const PRAISE_COMBO=['🔥 连击','💪 越来越棒','🌟 状态好极了'];
+function praise(ctx,n){
+  if(ctx==='combo'&&n>=3) return PRAISE_COMBO[Math.floor(Math.random()*PRAISE_COMBO.length)]+' x'+n+'!';
+  if(ctx==='fast') return PRAISE_FAST[Math.floor(Math.random()*PRAISE_FAST.length)];
+  if(ctx==='review') return PRAISE_REVIEW[Math.floor(Math.random()*PRAISE_REVIEW.length)];
+  return PRAISE_DEFAULT[Math.floor(Math.random()*PRAISE_DEFAULT.length)];
+}
+// 复习池：从错字本抽 30%
+function reviewPool(count){
+  const n=Math.min(Math.floor(count*0.3), Object.keys(WRONG).length);
+  return shuffle(Object.values(WRONG)).slice(0,n);
+}
+
 /* ============================================================
    模式1：生字认读（翻卡）
    ============================================================ */
@@ -411,20 +436,28 @@ function startZishi(unit){
    模式2：拼音练习（看字选拼音 / 看拼音选字 混合）
    ============================================================ */
 function startPinyin(unit){
-  startActivity('pinyin');
-  const qs=shuffle(unit.words).slice(0,Math.min(12,unit.words.length));
-  let idx=0,correct=0;
+  startActivity('pinyin'); resetSession();
+  // 复习优先：30% 从错字本抽
+  const fresh = shuffle(unit.words).slice(0, Math.max(1, Math.min(12,unit.words.length)));
+  const reviews = reviewPool(12);
+  const qsBase = shuffle([...reviews.slice(0, Math.floor(12*0.3)), ...fresh]).slice(0,12);
+  const qs = qsBase.map(w => ({z:w.z, p:w.p, w:w.w, isReview: !!reviews.find(r=>r.z===w.z)}));
+  let idx=0,correct=0,_qStart=0;
   function render(){
-    const w=qs[idx];
-    const mode=Math.random()<0.5?'z2p':'p2z';   // 字→拼音 / 拼音→字
+    // 时长检查
+    const st=sessionShouldStop();
+    if(st==='force'){ endActivity(); app.innerHTML=''; app.appendChild($(`<div class="card done"><div class="big">🎉</div><div class="msg">今天学得真够多了！</div></div>`)); app.appendChild($(`<button class="btn btn-primary" onclick="home()">回首页</button>`)); return; }
+    if(st==='rest') toast('☕ 学了20分钟，休息一下吧',2500);
+
+    const w=qs[idx]; _qStart=Date.now();
+    const mode=Math.random()<0.5?'z2p':'p2z';
     const others=shuffle(ZISHI.filter(x=>x.z!==w.z)).filter((x,i,a)=>{
-      // 去重显示
       const key=mode==='z2p'?'p':'z';
       return a.findIndex(y=>y[key]===x[key])===i;
     }).slice(0,3);
     const opts=shuffle([w,...others]);
     app.innerHTML='';
-    app.appendChild($(`<div class="topbar"><button class="back">← 返回</button><div class="title-sm">拼音练习 (${idx+1}/${qs.length})</div></div>`));
+    app.appendChild($(`<div class="topbar"><button class="back">← 返回</button><div class="title-sm">拼音练习 (${idx+1}/${qs.length})${w.isReview?' <span style="color:#c9450c;font-size:12px;">📕复习</span>':''}</div></div>`));
     app.querySelector('.back').onclick=()=>{endActivity();home()};
     const promptHtml=mode==='z2p'
       ?`<div class="q-pic">${w.z}</div><div class="q-prompt">这个字的<b>拼音</b>是？</div>`
@@ -438,17 +471,23 @@ function startPinyin(unit){
       b.onclick=()=>{
         if(b.dataset.done)return;
         grid.querySelectorAll('.opt').forEach(x=>x.dataset.done='1');
+        const elapsed=(Date.now()-_qStart)/1000;
         if(right){
-          b.classList.add('right');correct++;addStar(1);sfxRight();comboHit();toast('⭐');speak(w.z);
+          b.classList.add('right');correct++;addStar(1);sfxRight();comboHit();
+          const msg = w.isReview?praise('review'): elapsed<3?praise('fast'): combo>=3?praise('combo',combo):praise('default');
+          toast(msg,1100); speak(w.z);
           answeredRight({key:'py:'+w.z,z:w.z,p:w.p,w:w.w,type:'pinyin'});
         }else{
           b.classList.add('wrong');sfxWrong();comboReset();toast('🤔');
           logWrong({key:'py:'+w.z,z:w.z,p:w.p,w:w.w,type:'pinyin'});
           const want=mode==='z2p'?w.p:w.z;
           grid.querySelectorAll('.opt').forEach(x=>{if(x.textContent===want)x.classList.add('right')});
+          // 错因解释
+          const ex = $(`<div style="background:#fff3e6;border-radius:12px;padding:12px;margin-top:12px;font-size:14px;color:#c9450c;line-height:1.6;">💡 「${w.z}」读 <b>${w.p}</b>，例如「${w.w}」</div>`);
+          card.appendChild(ex);
           speak(w.z);
         }
-        setTimeout(()=>{if(idx<qs.length-1){idx++;render()}else finish()},1100);
+        setTimeout(()=>{if(idx<qs.length-1){idx++;render()}else finish()}, right?1100:2400);
       };
       grid.appendChild(b);
     });
