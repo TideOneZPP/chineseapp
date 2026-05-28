@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="语文乐学">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Crect width='180' height='180' rx='40' fill='%23e8590c'/%3E%3Ctext x='90' y='128' font-size='100' text-anchor='middle'%3E📖%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Ctext x='32' y='50' font-size='52' text-anchor='middle'%3E📖%3C/text%3E%3C/svg%3E">
+<title>小学语文乐学 · 统编版三年级</title>
+<style>
+  :root{--bg:#fff5e6;--card:#fff;--primary:#e8590c;--primary-d:#c9450c;--blue:#4dabf7;--green:#51cf66;--purple:#9775fa;--pink:#ff6b9d;--ink:#3a3a3a;--muted:#8a8a8a;--shadow:0 6px 20px rgba(0,0,0,.08);}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;font-family:"PingFang SC","Microsoft YaHei","STKaiti","KaiTi",serif;background:linear-gradient(160deg,#fff5e6 0%,#ffe8cc 100%);color:var(--ink);min-height:100vh;user-select:none}
+  .wrap{max-width:760px;margin:0 auto;padding:calc(16px + env(safe-area-inset-top)) 16px 40px}
+  header{display:flex;align-items:center;justify-content:space-between;padding:8px 4px 16px}
+  h1{font-size:22px;margin:0;letter-spacing:1px}
+  .stars{background:#fff;border-radius:999px;padding:6px 14px;box-shadow:var(--shadow);font-weight:700;color:var(--primary-d)}
+  .card{background:var(--card);border-radius:20px;box-shadow:var(--shadow);padding:20px;margin-bottom:16px}
+  .btn{border:none;border-radius:16px;padding:16px;font-size:18px;font-weight:700;color:#fff;cursor:pointer;transition:transform .08s;width:100%}
+  .btn:active{transform:scale(.96)}
+  .btn-primary{background:var(--primary)}.btn-blue{background:var(--blue)}.btn-green{background:var(--green)}.btn-purple{background:var(--purple)}.btn-pink{background:var(--pink)}
+  .btn-ghost{background:#fff;color:var(--ink);box-shadow:var(--shadow)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .grid-modes{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .mode{border-radius:20px;padding:22px 16px;color:#fff;cursor:pointer;text-align:center;box-shadow:var(--shadow);transition:transform .08s}
+  .mode:active{transform:scale(.96)}
+  .mode .emoji{font-size:46px;display:block;margin-bottom:8px}
+  .mode .t{font-size:18px;font-weight:800}
+  .mode .d{font-size:12px;opacity:.9;margin-top:4px}
+  .topbar{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .back{background:#fff;border:none;border-radius:12px;padding:10px 14px;font-size:16px;box-shadow:var(--shadow);cursor:pointer}
+  .title-sm{font-size:18px;font-weight:800}
+  .flash{text-align:center;padding:28px 16px}
+  .flash .zi{font-size:120px;font-weight:800;color:var(--primary-d);line-height:1;font-family:"STKaiti","KaiTi","Songti SC",serif;margin-bottom:8px}
+  .flash .py{font-size:30px;color:var(--blue);font-weight:600;margin-bottom:10px;letter-spacing:2px}
+  .flash .ci{font-size:22px;color:#555;margin-bottom:6px}
+  .flash .yi{font-size:14px;color:var(--muted)}
+  .speak{display:inline-flex;align-items:center;gap:6px;margin-top:14px;background:var(--blue);color:#fff;border:none;border-radius:999px;padding:10px 20px;font-size:16px;font-weight:700;cursor:pointer}
+  .progress{font-size:14px;color:var(--muted);text-align:center;margin-top:8px}
+  .opt{background:#fff;border:3px solid #ffe0c2;border-radius:16px;padding:18px;font-size:22px;font-weight:700;cursor:pointer;text-align:center;transition:.12s}
+  .opt:active{transform:scale(.97)}
+  .opt.right{background:#e7f9eb;border-color:var(--green);color:#2b8a3e}
+  .opt.wrong{background:#ffe9ec;border-color:var(--pink);color:#c92a52}
+  .q-pic{text-align:center;font-size:90px;font-weight:800;color:var(--primary-d);margin:10px 0 16px;font-family:"STKaiti","KaiTi",serif}
+  .q-prompt{text-align:center;font-size:18px;font-weight:700;margin-bottom:14px}
+  .toast{position:fixed;left:50%;top:30%;transform:translateX(-50%);background:#fff;border-radius:20px;padding:24px 32px;box-shadow:0 12px 40px rgba(0,0,0,.2);font-size:48px;opacity:0;pointer-events:none;transition:.2s;z-index:50}
+  .toast.show{opacity:1;top:32%}
+  .done{text-align:center;padding:24px}.done .big{font-size:72px}.done .msg{font-size:22px;font-weight:800;margin:10px 0}
+  .combo{position:fixed;top:70px;right:16px;background:var(--pink);color:#fff;font-weight:800;padding:6px 14px;border-radius:999px;box-shadow:var(--shadow);transform:scale(0);transition:.2s;z-index:40}.combo.show{transform:scale(1)}
+  .bar{height:10px;background:#ffe0c2;border-radius:999px;overflow:hidden;margin:12px 0}.bar>i{display:block;height:100%;background:var(--green);width:100%;transition:width .2s linear}
+  .unit-row{display:flex;align-items:center;justify-content:space-between;padding:16px;border-radius:16px;background:#fff;box-shadow:var(--shadow);margin-bottom:10px;cursor:pointer}
+  .unit-row:active{transform:scale(.99)}
+  .unit-row .n{font-weight:800;font-size:17px}.unit-row .c{font-size:13px;color:var(--muted)}
+  .hint{font-size:13px;color:var(--muted);text-align:center;margin-top:12px;line-height:1.6}
+  .poem{font-family:"STKaiti","KaiTi","Songti SC",serif;text-align:center;padding:16px 0}
+  .poem .pt{font-size:26px;font-weight:800;color:var(--primary-d);margin-bottom:6px}
+  .poem .pa{font-size:14px;color:var(--muted);margin-bottom:18px}
+  .poem .pl{font-size:22px;color:#333;line-height:2;letter-spacing:2px}
+  .poem .pl.blank{color:#fff;background:#ffe0c2;border-radius:8px;padding:0 12px;display:inline-block}
+  .dictate-card{text-align:center;padding:40px 16px}
+  .dictate-card .speak-big{background:var(--primary);color:#fff;border:none;border-radius:999px;padding:20px 36px;font-size:22px;font-weight:800;cursor:pointer;box-shadow:var(--shadow)}
+  .dictate-card .reveal{font-size:64px;font-weight:800;color:var(--primary-d);font-family:"STKaiti",serif;margin:12px 0 6px}
+  .dictate-card .py{font-size:22px;color:var(--blue);letter-spacing:2px;margin-bottom:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>📖 语文乐学</h1>
+    <div class="stars">⭐ <span id="starCount">0</span></div>
+  </header>
+  <div id="app"></div>
+  <p class="hint" id="footHint"></p>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   小学语文乐学（统编版三年级）—— 复用同款底盘
+   ============================================================ */
+
+/* ============================================================
+   生字 + 拼音 + 词语 + 释义（三年级常用字精选）
+   ============================================================ */
+const ZISHI = [
+  // 称谓
+  {z:'我',p:'wǒ',w:'我们',m:'第一人称'},
+  {z:'你',p:'nǐ',w:'你好',m:'第二人称'},
+  {z:'他',p:'tā',w:'他们',m:'男性第三人称'},
+  {z:'她',p:'tā',w:'她们',m:'女性第三人称'},
+  {z:'们',p:'men',w:'同学们',m:'复数后缀'},
+  // 自然
+  {z:'山',p:'shān',w:'高山',m:'山脉'},
+  {z:'水',p:'shuǐ',w:'河水',m:'液体'},
+  {z:'风',p:'fēng',w:'风雨',m:'空气流动'},
+  {z:'雨',p:'yǔ',w:'下雨',m:'降水'},
+  {z:'云',p:'yún',w:'白云',m:'空中水汽'},
+  {z:'雪',p:'xuě',w:'雪花',m:'冬天降水'},
+  {z:'花',p:'huā',w:'鲜花',m:'植物的花朵'},
+  {z:'草',p:'cǎo',w:'小草',m:'低矮植物'},
+  {z:'树',p:'shù',w:'大树',m:'木本植物'},
+  {z:'叶',p:'yè',w:'树叶',m:'植物的叶子'},
+  {z:'河',p:'hé',w:'河流',m:'河水'},
+  {z:'湖',p:'hú',w:'西湖',m:'湖泊'},
+  // 季节
+  {z:'春',p:'chūn',w:'春天',m:'四季之一'},
+  {z:'夏',p:'xià',w:'夏天',m:'四季之一'},
+  {z:'秋',p:'qiū',w:'秋天',m:'四季之一'},
+  {z:'冬',p:'dōng',w:'冬天',m:'四季之一'},
+  // 学校
+  {z:'朋',p:'péng',w:'朋友',m:'同伴'},
+  {z:'友',p:'yǒu',w:'友好',m:'友谊'},
+  {z:'同',p:'tóng',w:'同学',m:'相同'},
+  {z:'学',p:'xué',w:'学习',m:'学习'},
+  {z:'校',p:'xiào',w:'学校',m:'读书的地方'},
+  {z:'老',p:'lǎo',w:'老师',m:'年长'},
+  {z:'师',p:'shī',w:'老师',m:'教师'},
+  {z:'书',p:'shū',w:'读书',m:'书本'},
+  {z:'读',p:'dú',w:'读书',m:'看书出声'},
+  {z:'写',p:'xiě',w:'写字',m:'书写'},
+  {z:'字',p:'zì',w:'汉字',m:'文字'},
+  // 动作
+  {z:'走',p:'zǒu',w:'走路',m:'步行'},
+  {z:'跑',p:'pǎo',w:'跑步',m:'快速移动'},
+  {z:'跳',p:'tiào',w:'跳高',m:'跳跃'},
+  {z:'看',p:'kàn',w:'看见',m:'观察'},
+  {z:'听',p:'tīng',w:'听见',m:'用耳朵接收'},
+  {z:'说',p:'shuō',w:'说话',m:'用口表达'},
+  {z:'笑',p:'xiào',w:'微笑',m:'高兴的表情'},
+  {z:'哭',p:'kū',w:'哭泣',m:'流泪'},
+  {z:'想',p:'xiǎng',w:'想念',m:'思考'},
+  // 时间
+  {z:'早',p:'zǎo',w:'早上',m:'清晨'},
+  {z:'晚',p:'wǎn',w:'晚上',m:'夜晚'},
+  {z:'今',p:'jīn',w:'今天',m:'现在'},
+  {z:'明',p:'míng',w:'明天',m:'后一天'},
+  // 颜色
+  {z:'红',p:'hóng',w:'红色',m:'颜色'},
+  {z:'黄',p:'huáng',w:'黄色',m:'颜色'},
+  {z:'绿',p:'lǜ',w:'绿色',m:'颜色'},
+  {z:'蓝',p:'lán',w:'蓝色',m:'颜色'},
+  // 数字
+  {z:'一',p:'yī',w:'一个',m:'数字 1'},
+  {z:'十',p:'shí',w:'十年',m:'数字 10'},
+  {z:'百',p:'bǎi',w:'百年',m:'数字 100'},
+  {z:'千',p:'qiān',w:'千年',m:'数字 1000'},
+  // 方位
+  {z:'上',p:'shàng',w:'上面',m:'方位词'},
+  {z:'下',p:'xià',w:'下面',m:'方位词'},
+  {z:'左',p:'zuǒ',w:'左边',m:'方位词'},
+  {z:'右',p:'yòu',w:'右边',m:'方位词'},
+  {z:'前',p:'qián',w:'前面',m:'方位词'},
+  {z:'后',p:'hòu',w:'后面',m:'方位词'},
+];
+
+/* ============================================================
+   古诗 8 首（统编版三年级课内）
+   ============================================================ */
+const POEMS = [
+  {t:'山行',a:'唐·杜牧',lines:['远上寒山石径斜，','白云生处有人家。','停车坐爱枫林晚，','霜叶红于二月花。']},
+  {t:'赠刘景文',a:'宋·苏轼',lines:['荷尽已无擎雨盖，','菊残犹有傲霜枝。','一年好景君须记，','最是橙黄橘绿时。']},
+  {t:'夜书所见',a:'宋·叶绍翁',lines:['萧萧梧叶送寒声，','江上秋风动客情。','知有儿童挑促织，','夜深篱落一灯明。']},
+  {t:'望天门山',a:'唐·李白',lines:['天门中断楚江开，','碧水东流至此回。','两岸青山相对出，','孤帆一片日边来。']},
+  {t:'饮湖上初晴后雨',a:'宋·苏轼',lines:['水光潋滟晴方好，','山色空蒙雨亦奇。','欲把西湖比西子，','淡妆浓抹总相宜。']},
+  {t:'望洞庭',a:'唐·刘禹锡',lines:['湖光秋月两相和，','潭面无风镜未磨。','遥望洞庭山水翠，','白银盘里一青螺。']},
+  {t:'九月九日忆山东兄弟',a:'唐·王维',lines:['独在异乡为异客，','每逢佳节倍思亲。','遥知兄弟登高处，','遍插茱萸少一人。']},
+  {t:'清明',a:'唐·杜牧',lines:['清明时节雨纷纷，','路上行人欲断魂。','借问酒家何处有？','牧童遥指杏花村。']},
+];
+
+/* ============================================================
+   通用框架（与英语/数学 App 同款，复用底盘）
+   ============================================================ */
+const app=document.getElementById('app'),toastEl=document.getElementById('toast'),starEl=document.getElementById('starCount'),footHint=document.getElementById('footHint');
+const $=h=>{const d=document.createElement('div');d.innerHTML=h.trim();return d.firstChild};
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+function toast(e,ms=900){toastEl.textContent=e;toastEl.classList.add('show');setTimeout(()=>toastEl.classList.remove('show'),ms)}
+
+let stars=parseInt(localStorage.getItem('c_stars')||'0',10);
+function setStars(n){stars=n;starEl.textContent=stars;localStorage.setItem('c_stars',stars)}
+function addStar(n=1){setStars(stars+n)}
+setStars(stars);
+const LEVELS=[{min:0,t:'语文小苗',e:'🌱'},{min:20,t:'识字小蜜蜂',e:'🐝'},{min:50,t:'读书小能手',e:'📚'},{min:100,t:'背诗小达人',e:'🎋'},{min:180,t:'语文小学霸',e:'🏅'},{min:300,t:'文学小才子',e:'👑'}];
+function levelInfo(){let lv=0;for(let i=0;i<LEVELS.length;i++)if(stars>=LEVELS[i].min)lv=i;const c=LEVELS[lv],n=LEVELS[lv+1]||null;return{lv:lv+1,title:c.t,emoji:c.e,cur:c.min,next:n?n.min:null,pct:n?Math.min(100,Math.round((stars-c.min)/(n.min-c.min)*100)):100}}
+
+function todayStr(){const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()}
+function ymd(d){return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()}
+function parseDay(k){const[y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d)}
+function last7(){const a=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);a.push({key:ymd(d),dow:'日一二三四五六'[d.getDay()]})}return a}
+let streak=parseInt(localStorage.getItem('c_streak')||'0',10),totalDays=parseInt(localStorage.getItem('c_days')||'0',10);
+function checkIn(){const last=localStorage.getItem('c_lastday'),today=todayStr();if(last===today)return false;const y=new Date();y.setDate(y.getDate()-1);streak=(last===ymd(y))?streak+1:1;totalDays++;localStorage.setItem('c_streak',streak);localStorage.setItem('c_days',totalDays);localStorage.setItem('c_lastday',today);return true}
+let isNewCheckIn=checkIn();
+
+const MODE_NAME={zishi:'生字认读',pinyin:'拼音练习',poem:'古诗背诵',dictate:'词语听写'};
+let LOG=JSON.parse(localStorage.getItem('c_log')||'{}');
+let WRONG=JSON.parse(localStorage.getItem('c_wrong')||'{}');
+function saveLog(){localStorage.setItem('c_log',JSON.stringify(LOG));localStorage.setItem('c_wrong',JSON.stringify(WRONG))}
+function dayBucket(d){d=d||todayStr();if(!LOG[d])LOG[d]={time:{},correct:0,total:0};return LOG[d]}
+let _act=null;
+function startActivity(m){endActivity();_act={mode:m,t0:Date.now()}}
+function endActivity(){if(!_act)return;const ms=Date.now()-_act.t0;if(ms>=1000){const b=dayBucket();b.time[_act.mode]=(b.time[_act.mode]||0)+ms;saveLog()}_act=null}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)endActivity()});
+window.addEventListener('pagehide',endActivity);
+function logResult(c,t){const b=dayBucket();b.correct+=c;b.total+=t;saveLog()}
+function logWrong(q){if(!q||!q.key)return;if(!WRONG[q.key])WRONG[q.key]={key:q.key,z:q.z,p:q.p,w:q.w,type:q.type,count:0,last:''};WRONG[q.key].count++;WRONG[q.key].last=todayStr();saveLog()}
+function answeredRight(q){if(q&&q.key&&WRONG[q.key]){WRONG[q.key].count=Math.max(0,WRONG[q.key].count-1);if(WRONG[q.key].count===0)delete WRONG[q.key];saveLog()}}
+function fmtMs(ms){const s=Math.round(ms/1000);if(s<60)return s+'秒';const m=Math.floor(s/60);return m+'分'+(s%60?(s%60)+'秒':'')}
+
+let actx=null;function ac(){if(!actx){try{actx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}return actx}
+function beep(fs,dur=.12,t='sine'){const c=ac();if(!c)return;fs.forEach((f,i)=>{const o=c.createOscillator(),g=c.createGain();o.type=t;o.frequency.value=f;o.connect(g);g.connect(c.destination);const tt=c.currentTime+i*dur*.9;g.gain.setValueAtTime(.0001,tt);g.gain.exponentialRampToValueAtTime(.25,tt+.02);g.gain.exponentialRampToValueAtTime(.0001,tt+dur);o.start(tt);o.stop(tt+dur)})}
+const sfxRight=()=>beep([660,880],.12),sfxWrong=()=>beep([200,150],.18,'square'),sfxWin=()=>beep([523,659,784,1047],.14);
+let combo=0,comboEl=null;
+function showCombo(){if(!comboEl){comboEl=$(`<div class="combo"></div>`);document.body.appendChild(comboEl)}if(combo>=2){comboEl.textContent='🔥 连击 x'+combo;comboEl.classList.add('show')}else comboEl.classList.remove('show')}
+function comboHit(){combo++;showCombo();return combo}
+function comboReset(){combo=0;showCombo()}
+
+/* —— 中文 TTS —— */
+let zhVoice=null;
+function pickZh(){const vs=speechSynthesis.getVoices();zhVoice=vs.find(v=>/zh[-_]CN/i.test(v.lang))||vs.find(v=>/^zh/i.test(v.lang))||null}
+if('speechSynthesis' in window){pickZh();speechSynthesis.onvoiceschanged=pickZh}
+function speak(text,rate=.85){if(!('speechSynthesis' in window))return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='zh-CN';u.rate=rate;u.pitch=1;if(zhVoice)u.voice=zhVoice;speechSynthesis.speak(u)}
+
+/* ============================================================
+   模式1：生字认读（翻卡）
+   ============================================================ */
+function startZishi(){
+  startActivity('zishi');
+  const ws=shuffle(ZISHI).slice(0,15);
+  let i=0;
+  function render(){
+    const w=ws[i];
+    app.innerHTML='';
+    app.appendChild($(`<div class="topbar"><button class="back">← 返回</button><div class="title-sm">生字认读</div></div>`));
+    app.querySelector('.back').onclick=()=>{endActivity();home()};
+    const card=$(`<div class="card flash">
+      <div class="zi">${w.z}</div>
+      <div class="py">${w.p}</div>
+      <div class="ci">📝 ${w.w}</div>
+      <div class="yi">${w.m}</div>
+      <div><button class="speak">🔊 听发音</button></div>
+      <div class="progress">${i+1} / ${ws.length}</div>
+    </div>`);
+    card.querySelector('.speak').onclick=()=>speak(w.z+'，'+w.w);
+    app.appendChild(card);
+    app.appendChild($(`<div class="grid2">
+      <button class="btn btn-ghost" id="prev">‹ 上一个</button>
+      <button class="btn btn-primary" id="next">下一个 ›</button></div>`));
+    app.querySelector('#prev').onclick=()=>{if(i>0){i--;render()}};
+    app.querySelector('#next').onclick=()=>{if(i<ws.length-1){i++;render();speak(ws[i].z+'，'+ws[i].w)}else finish()};
+    speak(w.z+'，'+w.w);
+  }
+  function finish(){
+    addStar(3);endActivity();sfxWin();
+    app.innerHTML='';
+    app.appendChild($(`<div class="card done"><div class="big">🎉</div><div class="msg">这组生字看完啦！+3⭐</div></div>`));
+    app.appendChild($(`<button class="btn btn-primary" id="again">再看一遍</button>`));
+    app.appendChild($(`<div style="height:12px"></div>`));
+    app.appendChild($(`<button class="btn btn-ghost" id="bk">回首页</button>`));
+    app.querySelector('#again').onclick=()=>{i=0;startActivity('zishi');render()};
+    app.querySelector('#bk').onclick=home;
+  }
+  render();
+}
+
+/* ============================================================
+   模式2：拼音练习（看字选拼音 / 看拼音选字 混合）
+   ============================================================ */
+function startPinyin(){
+  startActivity('pinyin');
+  const qs=shuffle(ZISHI).slice(0,12);
+  let idx=0,correct=0;
+  function render(){
+    const w=qs[idx];
+    const mode=Math.random()<0.5?'z2p':'p2z';   // 字→拼音 / 拼音→字
+    const others=shuffle(ZISHI.filter(x=>x.z!==w.z)).filter((x,i,a)=>{
+      // 去重显示
+      const key=mode==='z2p'?'p':'z';
+      return a.findIndex(y=>y[key]===x[key])===i;
+    }).slice(0,3);
+    const opts=shuffle([w,...others]);
+    app.innerHTML='';
+    app.appendChild($(`<div class="topbar"><button class="back">← 返回</button><div class="title-sm">拼音练习 (${idx+1}/${qs.length})</div></div>`));
+    app.querySelector('.back').onclick=()=>{endActivity();home()};
+    const promptHtml=mode==='z2p'
+      ?`<div class="q-pic">${w.z}</div><div class="q-prompt">这个字的<b>拼音</b>是？</div>`
+      :`<div class="q-pic" style="color:var(--blue);font-family:sans-serif;font-size:60px;">${w.p}</div><div class="q-prompt">这个拼音对应哪个<b>字</b>？</div>`;
+    const card=$(`<div class="card">${promptHtml}</div>`);
+    const grid=$(`<div class="grid2"></div>`);
+    opts.forEach(o=>{
+      const label=mode==='z2p'?o.p:o.z;
+      const right=mode==='z2p'?o.p===w.p:o.z===w.z;
+      const b=$(`<div class="opt">${label}</div>`);
+      b.onclick=()=>{
+        if(b.dataset.done)return;
+        grid.querySelectorAll('.opt').forEach(x=>x.dataset.done='1');
+        if(right){
+          b.classList.add('right');correct++;addStar(1);sfxRight();comboHit();toast('⭐');speak(w.z);
+          answeredRight({key:'py:'+w.z,z:w.z,p:w.p,w:w.w,type:'pinyin'});
+        }else{
+          b.classList.add('wrong');sfxWrong();comboReset();toast('🤔');
+          logWrong({key:'py:'+w.z,z:w.z,p:w.p,w:w.w,type:'pinyin'});
+          const want=mode==='z2p'?w.p:w.z;
+          grid.querySelectorAll('.opt').forEach(x=>{if(x.textContent===want)x.classList.add('right')});
+          speak(w.z);
+        }
+        setTimeout(()=>{if(idx<qs.length-1){idx++;render()}else finish()},1100);
+      };
+      grid.appendChild(b);
+    });
+    card.appendChild(grid);
+    app.appendChild(card);
+  }
+  function finish(){
+    logResult(correct,qs.length);endActivity();sfxWin();
+    const pass=correct>=Math.ceil(qs.length*0.6);
+    app.innerHTML='';
+    app.appendChild($(`<div class="card done"><div class="big">${pass?'🏆':'💪'}</div><div class="msg">答对 ${correct}/${qs.length}<br>获得 ${correct}⭐</div></div>`));
+    app.appendChild($(`<button class="btn btn-primary" id="again">再来一关</button>`));
+    app.appendChild($(`<div style="height:12px"></div>`));
+    app.appendChild($(`<button class="btn btn-ghost" id="bk">回首页</button>`));
+    app.querySelector('#again').onclick=()=>{idx=0;correct=0;startActivity('pinyin');render()};
+    app.querySelector('#bk').onclick=home;
+  }
+  render();
+}
+
+/* ============================================================
+   模式3：古诗背诵（朗读 + 填空挑战）
+   ============================================================ */
+function startPoem(){
+  // 先列出 8 首古诗
+  app.innerHTML='';
+  app.appendChild($(`<div class="topbar"><button class="back">← 返回</button><div class="title-sm">古诗背诵 · 选一首</div></div>`));
+  app.querySelector('.back').onclick=home;
+  POEMS.forEach((p,i)=>{
+    const row=$(`<div class="unit-row"><div><div class="n">📜 ${p.t}</div><div class="c">${p.a}</div></div><div>›</div></div>`);
+    row.onclick=()=>poemDetail(i);
+    app.appendChild(row);
+  });
+}
+function poemDetail(idx){
+  startActivity('poem');
+  const p=POEMS[idx];
+  app.innerHTML='';
+  app.appendChild($(`<div class="topbar"><button class="back">← 返回</button><div class="title-sm">${p.t}</div></div>`));
+  app.querySelector('.back').onclick=()=>{endActivity();startPoem()};
+  const card=$(`<div class="card poem">
+    <div class="pt">${p.t}</div>
+    <div class="pa">${p.a}</div>
+    <div>${p.lines.map(l=>`<div class="pl">${l}</div>`).join('')}</div>
+  </div>`);
+  app.appendChild(card);
+  app.appendChild($(`<button class="btn btn-blue" id="read">🔊 跟我朗读</button>`));
+  app.appendChild($(`<div style="height:12px"></div>`));
+  app.appendChild($(`<button class="btn btn-pink" id="fill">🎯 填空挑战</button>`));
+  app.querySelector('#read').onclick=()=>speak(p.t+'，'+p.a+'。'+p.lines.join(''));
+  app.querySelector('#fill').onclick=()=>startPoemFill(idx);
+  setTimeout(()=>speak(p.t+'，'+p.a+'。'+p.lines.join('')),300);
+}
+function startPoemFill(idx){
+  const p=POEMS[idx];
+  let li=0,correct=0;
+  function render(){
+    if(li>=p.lines.length){finish();return}
+    const line=p.lines[li];
+    // 干扰句：从其他古诗里随机抽 3 句长度相近的
+    const allLines=POEMS.flatMap(po=>po.lines).filter(l=>l!==line);
+    const others=shuffle(allLines).slice(0,3);
+    const opts=shuffle([line,...others]);
+    app.innerHTML='';
+    app.appendChild($(`<div class="topbar"><button class="back">← 返回</button><div class="title-sm">${p.t} · 填空 (${li+1}/${p.lines.length})</div></div>`));
+    app.querySelector('.back').onclick=()=>{endActivity();poemDetail(idx)};
+    const lines=p.lines.map((l,i)=>i===li?`<div class="pl blank">_____________</div>`:`<div class="pl">${l}</div>`).join('');
+    const card=$(`<div class="card poem"><div class="pt">${p.t}</div><div class="pa">${p.a}</div><div>${lines}</div></div>`);
+    app.appendChild(card);
+    app.appendChild($(`<div class="q-prompt">填空处是哪一句？</div>`));
+    const grid=$(`<div></div>`);
+    opts.forEach(o=>{
+      const b=$(`<div class="opt" style="font-family:'STKaiti',serif;margin-bottom:10px;font-size:20px;">${o}</div>`);
+      b.onclick=()=>{
+        if(b.dataset.done)return;
+        grid.querySelectorAll('.opt').forEach(x=>x.dataset.done='1');
+        const wrong={key:'po:'+p.t+'-'+li,z:p.t,p:line,w:p.t+' 填空',type:'poem'};
+        if(o===line){
+          b.classList.add('right');correct++;addStar(2);sfxRight();comboHit();toast('⭐');speak(line);
+          answeredRight(wrong);
+        }else{
+          b.classList.add('wrong');sfxWrong();comboReset();toast('🤔');logWrong(wrong);
+          grid.querySelectorAll('.opt').forEach(x=>{if(x.textContent===line)x.classList.add('right')});
+          speak(line);
+        }
+        setTimeout(()=>{li++;render()},1500);
+      };
+      grid.appendChild(b);
+    });
+    app.appendChild(grid);
+  }
+  function finish(){
+    logResult(correct,p.lines.length);endActivity();sfxWin();
+    app.innerHTML='';
+    const pass=correct===p.lines.length;
+    app.appendChild($(`<div class="card done"><div class="big">${pass?'🏆':'📜'}</div><div class="msg">${p.t} · 填对 ${correct}/${p.lines.length}<br>获得 ${correct*2}⭐</div></div>`));
+    app.appendChild($(`<button class="btn btn-primary" id="again">再背一遍</button>`));
+    app.appendChild($(`<div style="height:12px"></div>`));
+    app.appendChild($(`<button class="btn btn-ghost" id="bk">回首页</button>`));
+    app.querySelector('#again').onclick=()=>{li=0;correct=0;startActivity('poem');render()};
+    app.querySelector('#bk').onclick=home;
+  }
+  startActivity('poem');render();
+}
+
+/* ============================================================
+   模式4：词语听写（家长辅助模式）
+   App 念词 → 孩子在纸上写 → 点"看答案"自查 → 标记对错
+   ============================================================ */
+function startDictate(){
+  startActivity('dictate');
+  const ws=shuffle(ZISHI).slice(0,10);
+  let idx=0,correct=0;
+  function render(){
+    const w=ws[idx];
+    let revealed=false;
+    app.innerHTML='';
+    app.appendChild($(`<div class="topbar"><button class="back">← 返回</button><div class="title-sm">词语听写 (${idx+1}/${ws.length})</div></div>`));
+    app.querySelector('.back').onclick=()=>{endActivity();home()};
+    const card=$(`<div class="card dictate-card">
+      <div style="font-size:14px;color:#8a8a8a;margin-bottom:14px;">先在纸上写下你听到的词，再点"看答案"自查</div>
+      <button class="speak-big" id="play">🔊 点这里听</button>
+      <div id="ansArea" style="margin-top:24px;"></div>
+    </div>`);
+    app.appendChild(card);
+    const playBtn=card.querySelector('#play'), ansArea=card.querySelector('#ansArea');
+    playBtn.onclick=()=>speak(w.w,.7);   // 听写放慢
+    setTimeout(()=>speak(w.w,.7),300);   // 进卡自动读一遍
+
+    function reveal(){
+      revealed=true;
+      ansArea.innerHTML=`<div class="reveal">${w.w}</div><div class="py">${w.p}</div>
+        <div style="margin-top:14px;display:flex;gap:10px;justify-content:center;">
+          <button class="btn btn-green" style="width:auto;padding:10px 24px;" id="ok">✅ 我写对了</button>
+          <button class="btn btn-pink" style="width:auto;padding:10px 24px;" id="ng">❌ 我写错了</button>
+        </div>`;
+      ansArea.querySelector('#ok').onclick=()=>{
+        correct++;addStar(2);sfxRight();comboHit();toast('⭐');
+        answeredRight({key:'dt:'+w.w,z:w.z,p:w.p,w:w.w,type:'dictate'});
+        setTimeout(next,500);
+      };
+      ansArea.querySelector('#ng').onclick=()=>{
+        sfxWrong();comboReset();toast('💪');
+        logWrong({key:'dt:'+w.w,z:w.z,p:w.p,w:w.w,type:'dictate'});
+        setTimeout(next,500);
+      };
+    }
+    app.appendChild($(`<button class="btn btn-primary" id="reveal" style="margin-top:8px;">👀 看答案</button>`));
+    app.querySelector('#reveal').onclick=()=>{ if(!revealed) reveal(); };
+    function next(){ if(idx<ws.length-1){idx++;render()}else finish() }
+  }
+  function finish(){
+    logResult(correct,ws.length);endActivity();sfxWin();
+    app.innerHTML='';
+    const pass=correct>=Math.ceil(ws.length*0.6);
+    app.appendChild($(`<div class="card done"><div class="big">${pass?'🏆':'💪'}</div><div class="msg">听写完成！写对 ${correct}/${ws.length}<br>获得 ${correct*2}⭐</div></div>`));
+    app.appendChild($(`<button class="btn btn-primary" id="again">再听写一组</button>`));
+    app.appendChild($(`<div style="height:12px"></div>`));
+    app.appendChild($(`<button class="btn btn-ghost" id="bk">回首页</button>`));
+    app.querySelector('#again').onclick=()=>{idx=0;correct=0;startActivity('dictate');render()};
+    app.querySelector('#bk').onclick=home;
+  }
+  render();
+}
+
+/* ============================================================
+   错题/错字专项练习
+   ============================================================ */
+function startReview(){
+  const pool=Object.values(WRONG);
+  if(!pool.length){toast('🎉');return}
+  startActivity('pinyin');
+  let idx=0,correct=0;
+  function render(){
+    const w=pool[idx];
+    const others=shuffle(ZISHI.filter(x=>x.p!==w.p)).slice(0,3);
+    const opts=shuffle([{p:w.p,z:w.z},...others]);
+    app.innerHTML='';
+    app.appendChild($(`<div class="topbar"><button class="back">← 返回</button><div class="title-sm">错字专项 (${idx+1}/${pool.length})</div></div>`));
+    app.querySelector('.back').onclick=home;
+    const card=$(`<div class="card"><div class="q-pic">${w.z}</div><div class="q-prompt">这个字的<b>拼音</b>是？</div></div>`);
+    const grid=$(`<div class="grid2"></div>`);
+    opts.forEach(o=>{
+      const b=$(`<div class="opt">${o.p}</div>`);
+      b.onclick=()=>{
+        if(b.dataset.done)return;
+        grid.querySelectorAll('.opt').forEach(x=>x.dataset.done='1');
+        if(o.p===w.p){b.classList.add('right');correct++;addStar(1);sfxRight();comboHit();toast('⭐');answeredRight(w)}
+        else{b.classList.add('wrong');sfxWrong();comboReset();toast('🤔');logWrong(w);grid.querySelectorAll('.opt').forEach(x=>{if(x.textContent===w.p)x.classList.add('right')})}
+        speak(w.z);
+        setTimeout(()=>{if(idx<pool.length-1){idx++;render()}else finish()},1100);
+      };
+      grid.appendChild(b);
+    });
+    card.appendChild(grid);
+    app.appendChild(card);
+  }
+  function finish(){
+    logResult(correct,pool.length);endActivity();sfxWin();
+    app.innerHTML='';
+    app.appendChild($(`<div class="card done"><div class="big">🎯</div><div class="msg">错字练完！答对 ${correct}/${pool.length}</div></div>`));
+    app.appendChild($(`<button class="btn btn-pink" id="bk">回首页</button>`));
+    app.querySelector('#bk').onclick=home;
+  }
+  render();
+}
+
+/* ============================================================
+   报告页（同款）
+   ============================================================ */
+function dayDetailPage(date){
+  app.innerHTML='';
+  app.appendChild($(`<div class="topbar"><button class="back">← 返回</button><div class="title-sm">📅 ${date} 明细</div></div>`));
+  app.querySelector('.back').onclick=reportPage;
+  const b=LOG[date]||{time:{},correct:0,total:0};
+  const totalMs=Object.values(b.time||{}).reduce((a,x)=>a+x,0);
+  const acc=b.total?Math.round(b.correct/b.total*100):null;
+  const dow='日一二三四五六'[parseDay(date).getDay()];
+  app.appendChild($(`<div class="card">
+    <div style="display:flex;gap:10px;margin-bottom:12px;">
+      <div style="flex:1;background:#ffe8cc;border-radius:14px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:800;color:#c9450c;">${fmtMs(totalMs)}</div><div style="font-size:12px;color:#8a8a8a;">学习时长</div></div>
+      <div style="flex:1;background:#e7f5ff;border-radius:14px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:800;color:#1971c2;">${acc!==null?acc+'%':'—'}</div><div style="font-size:12px;color:#8a8a8a;">正确率</div></div>
+      <div style="flex:1;background:#ebfbee;border-radius:14px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:800;color:#2b8a3e;">${b.total||0}</div><div style="font-size:12px;color:#8a8a8a;">做题数</div></div>
+    </div>
+    <div style="font-size:14px;font-weight:700;margin-bottom:4px;">周${dow} · 各模块用时：</div>
+    ${Object.keys(b.time||{}).length?Object.keys(b.time).sort((x,y)=>b.time[y]-b.time[x]).map(m=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed #eee;"><span>${MODE_NAME[m]||m}</span><b>${fmtMs(b.time[m])}</b></div>`).join(''):'<div style="color:#8a8a8a;padding:6px 0;">这天没有学习记录</div>'}
+  </div>`));
+}
+
+function reportPage(){
+  endActivity();
+  app.innerHTML='';
+  app.appendChild($(`<div class="topbar"><button class="back">← 返回</button><div class="title-sm">📊 学习报告</div></div>`));
+  app.querySelector('.back').onclick=home;
+  const today=todayStr();
+  const tB=LOG[today]||{time:{},correct:0,total:0};
+  const todayMs=Object.values(tB.time).reduce((a,b)=>a+b,0);
+  let allMs=0,allCorrect=0,allTotal=0;
+  Object.values(LOG).forEach(d=>{allMs+=Object.values(d.time||{}).reduce((a,b)=>a+b,0);allCorrect+=d.correct||0;allTotal+=d.total||0});
+  const todayAcc=tB.total?Math.round(tB.correct/tB.total*100):null;
+  const allAcc=allTotal?Math.round(allCorrect/allTotal*100):null;
+  const activeDays=Object.keys(LOG).length;
+  const todayModes=Object.keys(tB.time).sort((a,b)=>tB.time[b]-tB.time[a]);
+  const modeRows=todayModes.length?todayModes.map(m=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed #eee;"><span>${MODE_NAME[m]||m}</span><b>${fmtMs(tB.time[m])}</b></div>`).join(''):'<div style="color:#8a8a8a;padding:6px 0;">今天还没开始学，去读个字吧～</div>';
+  app.appendChild($(`<div class="card">
+    <div class="title-sm" style="margin-bottom:8px;">📅 今天 (${today})</div>
+    <div style="display:flex;gap:10px;margin-bottom:10px;">
+      <div style="flex:1;background:#ffe8cc;border-radius:14px;padding:12px;text-align:center;"><div style="font-size:24px;font-weight:800;color:#c9450c;">${fmtMs(todayMs)}</div><div style="font-size:12px;color:#8a8a8a;">学习时长</div></div>
+      <div style="flex:1;background:#e7f5ff;border-radius:14px;padding:12px;text-align:center;"><div style="font-size:24px;font-weight:800;color:#1971c2;">${todayAcc!==null?todayAcc+'%':'—'}</div><div style="font-size:12px;color:#8a8a8a;">答题正确率</div></div>
+      <div style="flex:1;background:#ebfbee;border-radius:14px;padding:12px;text-align:center;"><div style="font-size:24px;font-weight:800;color:#2b8a3e;">${tB.total||0}</div><div style="font-size:12px;color:#8a8a8a;">做题数</div></div>
+    </div>
+    <div style="font-size:14px;font-weight:700;margin:6px 0 2px;">各模块用时：</div>${modeRows}
+  </div>`));
+  app.appendChild($(`<div class="card"><div class="title-sm" style="margin-bottom:8px;">📈 累计</div>
+    <div style="font-size:14px;line-height:2;color:#555;">
+      🔥 连续打卡 <b>${streak}</b> 天 ｜ 学习过 <b>${activeDays}</b> 天<br>
+      ⏱️ 总学习时长 <b>${fmtMs(allMs)}</b><br>
+      🎯 总答题 <b>${allTotal}</b> 道 ｜ 平均正确率 <b>${allAcc!==null?allAcc+'%':'—'}</b><br>
+      ⭐ 总星星 <b>${stars}</b>
+    </div></div>`));
+  // 趋势
+  const days=last7();
+  const dayMins=days.map(d=>{const t=(LOG[d.key]&&Object.values(LOG[d.key].time||{}).reduce((a,b)=>a+b,0))||0;return Math.round(t/60000*10)/10});
+  const maxMin=Math.max(1,...dayMins);
+  const learnedDays=dayMins.filter(m=>m>0).length;
+  const bars=days.map((d,i)=>{const h=Math.max(4,Math.round(dayMins[i]/maxMin*90));const on=dayMins[i]>0;return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;"><div style="font-size:10px;color:#8a8a8a;height:14px;">${on?dayMins[i]+'分':''}</div><div style="width:60%;height:${h}px;border-radius:6px 6px 0 0;background:${on?'linear-gradient(180deg,#e8590c,#ffc078)':'#eee'};"></div><div style="font-size:11px;color:${d.key===today?'#c9450c':'#8a8a8a'};font-weight:${d.key===today?800:400};">周${d.dow}</div></div>`}).join('');
+  app.appendChild($(`<div class="card"><div class="title-sm" style="margin-bottom:10px;">📊 近 7 天学习趋势</div><div style="display:flex;align-items:flex-end;gap:6px;height:130px;padding-top:6px;">${bars}</div><div style="font-size:13px;color:#8a8a8a;margin-top:8px;">最近 7 天里坚持学习了 <b style="color:#c9450c;">${learnedDays}</b> 天</div></div>`));
+  // 历史
+  const allDates=Object.keys(LOG).sort((a,b)=>parseDay(b)-parseDay(a));
+  const histCard=$(`<div class="card"><div class="title-sm" style="margin-bottom:10px;">🗂️ 历史记录（点某天看明细）</div></div>`);
+  if(!allDates.length){histCard.appendChild($(`<div style="color:#8a8a8a;padding:6px 0;">还没有历史记录，学起来吧～</div>`))}
+  else{
+    const wrap=$(`<div></div>`);
+    allDates.forEach(dt=>{
+      const b=LOG[dt];const ms=Object.values(b.time||{}).reduce((a,x)=>a+x,0);
+      const acc=b.total?Math.round(b.correct/b.total*100):null;
+      const dow='日一二三四五六'[parseDay(dt).getDay()];
+      const isToday=dt===today;
+      const row=$(`<div class="unit-row" style="cursor:pointer;"><div><div class="n">${dt}${isToday?' <span style="color:#c9450c;font-size:12px;">今天</span>':''} <span style="color:#aaa;font-size:12px;">周${dow}</span></div><div class="c">⏱️ ${fmtMs(ms)} ｜ 🎯 ${acc!==null?acc+'%':'—'} ｜ ${b.total||0}题</div></div><div>›</div></div>`);
+      row.onclick=()=>dayDetailPage(dt);
+      wrap.appendChild(row);
+    });
+    histCard.appendChild(wrap);
+  }
+  app.appendChild(histCard);
+  // 错字本
+  const wrongList=Object.values(WRONG).sort((a,b)=>b.count-a.count);
+  const wrongCard=$(`<div class="card"><div class="title-sm" style="margin-bottom:10px;">📕 错字/错题本（点可听发音）</div></div>`);
+  if(!wrongList.length){wrongCard.appendChild($(`<div style="color:#2b8a3e;padding:6px 0;">🎉 太棒了，目前没有需要复习的错字！</div>`))}
+  else{
+    const wrap=$(`<div></div>`);
+    wrongList.forEach(w=>{
+      const row=$(`<div class="unit-row" style="cursor:pointer;"><div><div class="n">📝 ${w.z||w.w} <span style="color:#1971c2;font-size:14px;">${w.p||''}</span></div><div class="c">${w.w||''} · ${MODE_NAME[w.type]||w.type}</div></div><div style="color:#c92a52;font-weight:800;">错${w.count}次 🔊</div></div>`);
+      row.onclick=()=>speak(w.z||w.w);
+      wrap.appendChild(row);
+    });
+    wrongCard.appendChild(wrap);
+    const reviewBtn=$(`<button class="btn" style="background:var(--pink);margin-top:14px;">🎯 专项练习这 ${wrongList.length} 个错字</button>`);
+    reviewBtn.onclick=startReview;
+    wrongCard.appendChild(reviewBtn);
+  }
+  app.appendChild(wrongCard);
+  // 总结
+  let tips=[];
+  if(todayMs===0) tips.push('今天还没开始，建议先做 5 分钟「生字认读」热热身。');
+  else tips.push(`今天已学习 ${fmtMs(todayMs)}，做了 ${tB.total||0} 道题${todayAcc!==null?('，正确率 '+todayAcc+'%'):''}。`);
+  if(todayAcc!==null){
+    if(todayAcc>=90) tips.push('正确率很高，挑战「古诗填空」试试看。');
+    else if(todayAcc>=60) tips.push('掌握得不错，重点把错字本里的字再过一遍。');
+    else tips.push('错得有点多，建议放慢节奏，多用「生字认读」打基础。');
+  }
+  if(wrongList.length) tips.push('最需要复习：'+wrongList.slice(0,5).map(w=>(w.z||w.w)).join('、')+'。');
+  app.appendChild($(`<div class="card" style="background:linear-gradient(135deg,#fff,#ffe8cc);"><div class="title-sm" style="margin-bottom:8px;">📝 今日总结</div><div style="font-size:14px;line-height:1.9;color:#444;">${tips.map(t=>'· '+t).join('<br>')}</div></div>`));
+  // 清空门
+  app.appendChild($(`<div style="text-align:center;margin-top:14px;"><button id="clr" style="background:none;border:none;color:#c9c9c9;font-size:12px;text-decoration:underline;cursor:pointer;padding:8px;">清空学习记录（需家长验证）</button></div>`));
+  app.querySelector('#clr').onclick=()=>{
+    const ans=prompt('⚠️ 清空后所有学习记录和错字本将永久无法恢复！\n\n如确定要清空，请一字不差输入：\n\n确认清空');
+    if(ans===null)return;
+    if((ans||'').trim()==='确认清空'){LOG={};WRONG={};saveLog();toast('🗑️ 已清空',1200);reportPage()}
+    else alert('输入不一致，已取消清空（记录安全）。');
+  };
+}
+
+/* ============================================================
+   首页
+   ============================================================ */
+function home(){
+  endActivity();
+  footHint.innerHTML='提示：第一次点发音可能没声音，再点一次即可。';
+  app.innerHTML='';
+  if(isNewCheckIn){isNewCheckIn=false;addStar(3);setTimeout(()=>toast('🎁 打卡+3⭐',1200),300)}
+  const li=levelInfo();
+  const banner=$(`<div class="card" style="background:linear-gradient(135deg,#fff,#ffe8cc);cursor:pointer;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div><div style="font-size:20px;font-weight:800;">${li.emoji} Lv.${li.lv} ${li.title}</div>
+      <div style="font-size:13px;color:#8a8a8a;margin-top:4px;">🔥 连续打卡 <b>${streak}</b> 天 ｜ 累计 <b>${totalDays}</b> 天 ｜ ⭐ ${stars}</div></div>
+      <div style="font-size:40px;">${li.emoji}</div>
+    </div>
+    <div class="bar" style="margin:12px 0 4px;"><i style="width:${li.pct}%;background:linear-gradient(90deg,#e8590c,#ffc078);"></i></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:12px;color:#8a8a8a;">${li.next!==null?('再得 '+(li.next-stars)+' ⭐ 升下一级'):'已满级，太厉害啦！👑'}</span>
+      <span style="font-size:13px;font-weight:700;color:#c9450c;">📊 学习报告 ›</span>
+    </div></div>`);
+  banner.onclick=reportPage;
+  app.appendChild(banner);
+  app.appendChild($(`<div class="card">
+    <div class="title-sm" style="margin-bottom:14px;">选一个玩法 👇</div>
+    <div class="grid-modes">
+      <div class="mode btn-primary" data-go="zishi"><span class="emoji">📚</span><div class="t">生字认读</div><div class="d">字+拼音+词+释义</div></div>
+      <div class="mode btn-blue" data-go="pinyin"><span class="emoji">🔤</span><div class="t">拼音练习</div><div class="d">字↔拼音 双向考</div></div>
+      <div class="mode" style="background:linear-gradient(135deg,#9775fa,#4dabf7);" data-go="poem"><span class="emoji">📜</span><div class="t">古诗背诵</div><div class="d">课内8首+填空</div></div>
+      <div class="mode btn-green" data-go="dictate"><span class="emoji">✍️</span><div class="t">词语听写</div><div class="d">家长辅助 · 自查</div></div>
+    </div></div>`));
+  app.querySelectorAll('[data-go]').forEach(el=>{
+    el.onclick=()=>{
+      const m=el.dataset.go;
+      if(m==='zishi')startZishi();
+      else if(m==='pinyin')startPinyin();
+      else if(m==='poem')startPoem();
+      else if(m==='dictate')startDictate();
+    };
+  });
+}
+
+home();
+</script>
+</body>
+</html>
