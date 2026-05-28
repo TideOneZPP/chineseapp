@@ -386,10 +386,11 @@ function speak(text,rate=.85){if(!('speechSynthesis' in window))return;speechSyn
 
 /* —— 导师层：番茄钟 15min / 过程鼓励 / 复习优先 —— */
 let _sessionStart=Date.now(), _restNudged=false;
-function resetSession(){ _sessionStart=Date.now(); _restNudged=false; pomoStart(); }
+function resetSession(){ _sessionStart=Date.now(); _restNudged=false; _force25Nudged=false; pomoStart(); }
+let _force25Nudged=false;
 function sessionShouldStop(){
   const min=(Date.now()-_sessionStart)/60000;
-  if(min>=25) return 'force';
+  if(min>=25 && !_force25Nudged){_force25Nudged=true; return 'overlong';} // 25min 软提示
   if(min>=15 && !_restNudged){_restNudged=true; return 'rest';}
   return null;
 }
@@ -404,7 +405,7 @@ function pomoStart(){
     const m=Math.floor((Date.now()-_sessionStart)/60000);
     el.textContent=`🍅 ${m}/15 min`;
     if(m>=15){ el.style.background='#fff3e6'; el.style.color='#c9450c'; }
-    if(m>=25){ el.style.background='#ffe9ec'; el.style.color='#c92a52'; el.textContent=`⏰ 该结束了 (${m}min)`; }
+    if(m>=25){ el.style.background='#fff3e6'; el.style.color='#e8590c'; el.textContent=`💡 学了 ${m} min`; }
   };
   tick(); _pomoTimer=setInterval(tick, 5000);
 }
@@ -501,8 +502,8 @@ function startPinyin(unit){
   function render(){
     // 时长检查
     const st=sessionShouldStop();
-    if(st==='force'){ endActivity(); app.innerHTML=''; app.appendChild($(`<div class="card done"><div class="big">🎉</div><div class="msg">今天学得真够多了！</div></div>`)); app.appendChild($(`<button class="btn btn-primary" onclick="home()">回首页</button>`)); return; }
-    if(st==='rest') toast('☕ 学了20分钟，休息一下吧',2500);
+    if(st==='overlong') toast('🎉 今天学得真够多了，记得护眼哦',3500);
+    if(st==='rest') toast('☕ 学了15分钟，休息一下吧',2500);
 
     const w=qs[idx]; _qStart=Date.now();
     const mode=Math.random()<0.5?'z2p':'p2z';
