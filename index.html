@@ -381,7 +381,7 @@ function startZishi(unit){
       <div class="zi">${w.z}</div>
       <div class="py">${w.p}</div>
       <div class="ci">📝 ${w.w}</div>
-      <div class="yi">${w.m}</div>
+      ${w.m?`<div class="yi">${w.m}</div>`:''}
       <div><button class="speak">🔊 听发音</button></div>
       <div class="progress">${i+1} / ${ws.length}</div>
     </div>`);
