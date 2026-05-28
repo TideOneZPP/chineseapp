@@ -65,6 +65,7 @@
   .dictate-card .reveal{font-size:64px;font-weight:800;color:var(--primary-d);font-family:"STKaiti",serif;margin:12px 0 6px}
   .dictate-card .py{font-size:22px;color:var(--blue);letter-spacing:2px;margin-bottom:8px}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -347,8 +348,26 @@ function endActivity(){if(!_act)return;const ms=Date.now()-_act.t0;if(ms>=1000){
 document.addEventListener('visibilitychange',()=>{if(document.hidden)endActivity()});
 window.addEventListener('pagehide',endActivity);
 function logResult(c,t){const b=dayBucket();b.correct+=c;b.total+=t;saveLog()}
-function logWrong(q){if(!q||!q.key)return;if(!WRONG[q.key])WRONG[q.key]={key:q.key,z:q.z,p:q.p,w:q.w,type:q.type,count:0,last:''};WRONG[q.key].count++;WRONG[q.key].last=todayStr();saveLog()}
-function answeredRight(q){if(q&&q.key&&WRONG[q.key]){WRONG[q.key].count=Math.max(0,WRONG[q.key].count-1);if(WRONG[q.key].count===0)delete WRONG[q.key];saveLog()}}
+// —— 错字本（艾宾浩斯遗忘曲线 + 错因归因）——
+const FORGET_INTERVALS=[1,2,4,7,15,30];
+function logWrong(q, errorType){
+  if(!q||!q.key)return;
+  if(!WRONG[q.key])WRONG[q.key]={key:q.key,z:q.z,p:q.p,w:q.w,type:q.type,count:0,last:'',stage:0,due:0};
+  WRONG[q.key].count++; WRONG[q.key].last=todayStr();
+  WRONG[q.key].stage=0; WRONG[q.key].due=Date.now();
+  if(errorType) WRONG[q.key].errorType=errorType;
+  saveLog();
+}
+function answeredRight(q){
+  if(!q||!q.key||!WRONG[q.key]) return;
+  const e=WRONG[q.key];
+  e.count=Math.max(0,e.count-1); e.stage=(e.stage||0)+1;
+  const d=FORGET_INTERVALS[Math.min(e.stage, FORGET_INTERVALS.length-1)];
+  e.due=Date.now()+d*86400*1000;
+  if(e.count===0 && e.stage>=5) delete WRONG[q.key];
+  saveLog();
+}
+function dueWrongList(){const now=Date.now(); return Object.values(WRONG).filter(w=>(w.due||0)<=now);}
 function fmtMs(ms){const s=Math.round(ms/1000);if(s<60)return s+'秒';const m=Math.floor(s/60);return m+'分'+(s%60?(s%60)+'秒':'')}
 
 let actx=null;function ac(){if(!actx){try{actx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}return actx}
@@ -365,15 +384,31 @@ function pickZh(){const vs=speechSynthesis.getVoices();zhVoice=vs.find(v=>/zh[-_
 if('speechSynthesis' in window){pickZh();speechSynthesis.onvoiceschanged=pickZh}
 function speak(text,rate=.85){if(!('speechSynthesis' in window))return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='zh-CN';u.rate=rate;u.pitch=1;if(zhVoice)u.voice=zhVoice;speechSynthesis.speak(u)}
 
-/* —— 导师层 Tutor Layer：时长边界 / 过程鼓励 / 复习优先 —— */
+/* —— 导师层：番茄钟 15min / 过程鼓励 / 复习优先 —— */
 let _sessionStart=Date.now(), _restNudged=false;
-function resetSession(){ _sessionStart=Date.now(); _restNudged=false; }
+function resetSession(){ _sessionStart=Date.now(); _restNudged=false; pomoStart(); }
 function sessionShouldStop(){
   const min=(Date.now()-_sessionStart)/60000;
-  if(min>=30) return 'force';
-  if(min>=20 && !_restNudged){_restNudged=true; return 'rest';}
+  if(min>=25) return 'force';
+  if(min>=15 && !_restNudged){_restNudged=true; return 'rest';}
   return null;
 }
+// —— 番茄钟 UI ——
+let _pomoTimer=null;
+function pomoStart(){
+  let el=document.getElementById('pomoBar');
+  if(!el){ el=$(`<div id="pomoBar" style="position:fixed;top:6px;left:50%;transform:translateX(-50%);background:#fff;border-radius:999px;padding:4px 12px;box-shadow:var(--shadow);font-size:12px;font-weight:700;color:#8a8a8a;z-index:30;"></div>`); document.body.appendChild(el); }
+  el.style.display='block';
+  if(_pomoTimer) clearInterval(_pomoTimer);
+  const tick=()=>{
+    const m=Math.floor((Date.now()-_sessionStart)/60000);
+    el.textContent=`🍅 ${m}/15 min`;
+    if(m>=15){ el.style.background='#fff3e6'; el.style.color='#c9450c'; }
+    if(m>=25){ el.style.background='#ffe9ec'; el.style.color='#c92a52'; el.textContent=`⏰ 该结束了 (${m}min)`; }
+  };
+  tick(); _pomoTimer=setInterval(tick, 5000);
+}
+function pomoStop(){ if(_pomoTimer){clearInterval(_pomoTimer);_pomoTimer=null;} const el=document.getElementById('pomoBar'); if(el) el.style.display='none'; }
 const PRAISE_DEFAULT=['⭐','👏','🎯','👍','💯','✨'];
 const PRAISE_FAST=['⚡ 太快了!','🚀 闪电速度!','💨 反应真快!'];
 const PRAISE_REVIEW=['✨ 错字改对了!','🌟 你进步了!','👍 抓到难点了!'];
@@ -384,10 +419,11 @@ function praise(ctx,n){
   if(ctx==='review') return PRAISE_REVIEW[Math.floor(Math.random()*PRAISE_REVIEW.length)];
   return PRAISE_DEFAULT[Math.floor(Math.random()*PRAISE_DEFAULT.length)];
 }
-// 复习池：从错字本抽 30%
+// 复习池：按艾宾浩斯节点取"到期"错字
 function reviewPool(count){
-  const n=Math.min(Math.floor(count*0.3), Object.keys(WRONG).length);
-  return shuffle(Object.values(WRONG)).slice(0,n);
+  const due=dueWrongList();
+  const n=Math.min(Math.floor(count*0.3), due.length);
+  return shuffle(due).slice(0,n);
 }
 
 /* ============================================================
@@ -403,14 +439,33 @@ function startZishi(unit){
     app.appendChild($(`<div class="topbar"><button class="back">← 返回</button><div class="title-sm">生字认读</div></div>`));
     app.querySelector('.back').onclick=()=>{endActivity();chooseLesson('zishi')};
     const card=$(`<div class="card flash">
-      <div class="zi">${w.z}</div>
+      <div id="ziBox" class="zi" style="cursor:pointer;">${w.z}</div>
       <div class="py">${w.p}</div>
       <div class="ci">📝 ${w.w}</div>
       ${w.m?`<div class="yi">${w.m}</div>`:''}
-      <div><button class="speak">🔊 听发音</button></div>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+        <button class="speak">🔊 听发音</button>
+        <button class="speak" id="stroke" style="background:var(--green);">✍️ 看笔顺</button>
+      </div>
       <div class="progress">${i+1} / ${ws.length}</div>
     </div>`);
     card.querySelector('.speak').onclick=()=>speak(w.z+'，'+w.w);
+    card.querySelector('#stroke').onclick=()=>{
+      if(typeof HanziWriter==='undefined'){ toast('⚠️ 笔顺库加载中，请重试',1500); return; }
+      const box=card.querySelector('#ziBox');
+      box.innerHTML='<div id="hzTarget" style="margin:0 auto;"></div>';
+      box.style.fontSize='1px';
+      try{
+        HanziWriter.create('hzTarget', w.z, {
+          width: 160, height: 160, padding: 6,
+          strokeAnimationSpeed: 1, delayBetweenStrokes: 200,
+          strokeColor: '#c9450c', radicalColor:'#1971c2',
+          showOutline: true, showCharacter: false
+        }).animateCharacter({
+          onComplete: function(){ setTimeout(()=>this.animateCharacter && this.animateCharacter(), 1200); }
+        });
+      }catch(e){ box.textContent=w.z; box.style.fontSize='120px'; toast('⚠️ 该字暂无笔顺数据',1500); }
+    };
     app.appendChild(card);
     app.appendChild($(`<div class="grid2">
       <button class="btn btn-ghost" id="prev">‹ 上一个</button>
@@ -485,6 +540,14 @@ function startPinyin(unit){
           // 错因解释
           const ex = $(`<div style="background:#fff3e6;border-radius:12px;padding:12px;margin-top:12px;font-size:14px;color:#c9450c;line-height:1.6;">💡 「${w.z}」读 <b>${w.p}</b>，例如「${w.w}」</div>`);
           card.appendChild(ex);
+          // 错因归因 chips
+          const erChips = $(`<div style="margin-top:10px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap;font-size:12px;align-items:center;color:#8a8a8a;"><span>错在：</span></div>`);
+          ['字形混淆','读音错','声调错','粗心'].forEach(t=>{
+            const c=$(`<button style="background:#fff;border:1px solid #ffd8a8;color:#c9450c;border-radius:999px;padding:3px 10px;font-size:12px;cursor:pointer;">${t}</button>`);
+            c.onclick=()=>{ const k='py:'+w.z; if(WRONG[k]){WRONG[k].errorType=t; saveLog();} erChips.querySelectorAll('button').forEach(x=>x.style.background='#fff'); c.style.background='#ffd8a8'; c.style.fontWeight='800'; };
+            erChips.appendChild(c);
+          });
+          card.appendChild(erChips);
           speak(w.z);
         }
         setTimeout(()=>{if(idx<qs.length-1){idx++;render()}else finish()}, right?1100:2400);
@@ -830,10 +893,142 @@ function chooseLesson(mode){
 }
 
 /* ============================================================
+   模式5：阅读理解（短文 + 3 题：信息提取/词义/主旨）
+   ============================================================ */
+const READINGS = [
+  {t:'小蚂蚁过河', text:'夏天，一只小蚂蚁要去河对岸找食物。河水很宽，它发愁极了。这时，一片大树叶从树上落下来，飘到河面上。小蚂蚁灵机一动，爬上树叶，用一根小树枝当桨，慢慢地划到了对岸。它高兴地说："只要肯动脑筋，办法总比困难多！"',
+    qs:[{q:'小蚂蚁为什么发愁？',o:['河水很宽','天气太热','找不到食物','找不到树叶'],a:0,why:'第一段写"河水很宽，它发愁极了"'},
+        {q:'"灵机一动"在文中的意思是？',o:['很生气','突然想到好办法','睡着了','很饿'],a:1,why:'后文小蚂蚁用树叶过河，说明它"想到办法"'},
+        {q:'这篇短文告诉我们什么道理？',o:['夏天很热','蚂蚁会游泳','肯动脑筋办法就多','要多吃食物'],a:2,why:'结尾小蚂蚁说"只要肯动脑筋，办法总比困难多"'}]},
+  {t:'校园的早晨', text:'清晨，校园里特别美丽。露珠在草叶上闪闪发光，像一颗颗珍珠。鸟儿在树梢上欢快地歌唱。同学们陆续走进校园，有的拿着书本在操场上读书，有的在花坛边浇花，还有的在打扫教室。整个校园充满了生机。',
+    qs:[{q:'露珠像什么？',o:['星星','珍珠','宝石','水滴'],a:1,why:'文中"像一颗颗珍珠"'},
+        {q:'同学们到校园后做了几件事？',o:['一件','两件','三件','四件'],a:2,why:'读书、浇花、打扫教室，共三件'},
+        {q:'"生机"在这里是什么意思？',o:['吃饭的时机','机器','生命力和活力','生气'],a:2,why:'同学们活动+鸟唱+露珠，描绘的是有活力的景象'}]},
+  {t:'诚实的孩子', text:'小明在操场上玩，不小心把窗户的玻璃打碎了。他心里很害怕，想跑开。但他想了想，还是走进办公室，对老师说："对不起，是我打碎了玻璃。"老师听了，不但没有批评他，反而表扬他是个诚实的好孩子。小明心里一下子轻松了。',
+    qs:[{q:'小明打碎玻璃后，最先想到的是？',o:['赔钱','跑开','道歉','哭'],a:1,why:'文中"心里很害怕，想跑开"'},
+        {q:'老师为什么没批评小明？',o:['玻璃很便宜','小明是好学生','小明诚实承认错误','老师没看见'],a:2,why:'老师表扬他是"诚实的好孩子"'},
+        {q:'读了这个故事你明白什么？',o:['玻璃不能打碎','犯错了要诚实承认','跑得快不会被发现','老师都很温柔'],a:1,why:'主旨：诚实承认错误是好品质'}]},
+  {t:'秋天的果园', text:'秋风一吹，果园就热闹起来了。苹果像红着脸的小娃娃挂在枝头；梨子金黄金黄的，像一盏盏小灯笼；石榴笑得咧开了嘴，露出晶莹的籽儿。农民伯伯笑眯眯地挑着满筐的果子走过，丰收的喜悦写在每个人的脸上。',
+    qs:[{q:'文中把梨子比作什么？',o:['娃娃','小灯笼','嘴巴','筐子'],a:1,why:'"梨子金黄金黄的，像一盏盏小灯笼"'},
+        {q:'"咧开了嘴"形容的是？',o:['苹果','梨子','石榴','农民'],a:2,why:'石榴成熟时果皮裂开露出籽，作者拟人为"咧嘴"'},
+        {q:'短文表达的主要情感是？',o:['伤心','丰收的喜悦','寒冷','害怕'],a:1,why:'结尾"丰收的喜悦写在每个人的脸上"'}]},
+  {t:'我的好朋友', text:'我有一个好朋友叫小红，她个子不高，但很爱帮助人。每次我有不会做的题，她总是耐心地讲给我听，直到我懂了为止。上次我感冒了没去上学，她还把当天的笔记送到我家。我很感谢她，能交到这样的朋友真是太幸运了。',
+    qs:[{q:'小红有什么特点？',o:['个子很高','爱睡懒觉','爱帮助人','学习不好'],a:2,why:'文中"但很爱帮助人"'},
+        {q:'小红做了哪两件具体的事？',o:['唱歌、跳舞','讲题、送笔记','打扫、浇花','洗衣、做饭'],a:1,why:'文中"讲题给我听"和"把笔记送到我家"'},
+        {q:'"我"对小红的感情是？',o:['讨厌','害怕','感谢','无所谓'],a:2,why:'文末"我很感谢她"'}]},
+  {t:'池塘里的青蛙', text:'夏天的傍晚，池塘里特别热闹。青蛙坐在荷叶上，鼓着圆圆的眼睛，"呱呱"地唱着歌。一只蜻蜓从空中飞过，青蛙猛地一跳，伸出长长的舌头，把蜻蜓粘住了。蜻蜓挣扎了几下，就被青蛙吞下肚去。原来，青蛙是捉害虫的能手呢！',
+    qs:[{q:'青蛙是怎么捉到蜻蜓的？',o:['用脚抓','用嘴咬','用长舌头粘住','用网兜'],a:2,why:'文中"伸出长长的舌头，把蜻蜓粘住了"'},
+        {q:'蜻蜓是青蛙眼里的什么？',o:['朋友','害虫食物','敌人','无关'],a:1,why:'文末"青蛙是捉害虫的能手"，蜻蜓被吃说明是它的食物'},
+        {q:'读完短文，我们应该怎样对待青蛙？',o:['多捕捉','保护它','远离它','害怕它'],a:1,why:'青蛙吃害虫对庄稼有益，应该保护'}]},
+];
+
+function startReading(){
+  startActivity('reading'); resetSession();
+  // 列表选一篇
+  app.innerHTML='';
+  app.appendChild($(`<div class="topbar"><button class="back">← 返回</button><div class="title-sm">📖 阅读理解 · 选一篇</div></div>`));
+  app.querySelector('.back').onclick=()=>{endActivity();home()};
+  READINGS.forEach((r,i)=>{
+    const row=$(`<div class="unit-row"><div><div class="n">📄 ${r.t}</div><div class="c">${r.text.length} 字 · 3 题</div></div><div>›</div></div>`);
+    row.onclick=()=>readingDetail(i);
+    app.appendChild(row);
+  });
+}
+function readingDetail(idx){
+  const r=READINGS[idx];
+  let qi=0, correct=0;
+  function render(){
+    const q=r.qs[qi];
+    app.innerHTML='';
+    app.appendChild($(`<div class="topbar"><button class="back">← 返回</button><div class="title-sm">${r.t} (${qi+1}/${r.qs.length})</div></div>`));
+    app.querySelector('.back').onclick=()=>startReading();
+    app.appendChild($(`<div class="card" style="font-size:17px;line-height:2;color:#333;background:#fff8f0;">${r.text}</div>`));
+    const card=$(`<div class="card"><div class="q-prompt" style="text-align:left;">❓ ${q.q}</div></div>`);
+    const grid=$(`<div style="display:grid;gap:10px;"></div>`);
+    q.o.forEach((opt,oi)=>{
+      const b=$(`<div class="opt" style="text-align:left;font-size:17px;">${'ABCD'[oi]}. ${opt}</div>`);
+      b.onclick=()=>{
+        if(b.dataset.done) return;
+        grid.querySelectorAll('.opt').forEach(x=>x.dataset.done='1');
+        if(oi===q.a){
+          b.classList.add('right'); correct++; addStar(2); sfxRight(); comboHit(); toast(praise(combo>=3?'combo':'default',combo),1100);
+        }else{
+          b.classList.add('wrong'); sfxWrong(); comboReset(); toast('🤔');
+          grid.querySelectorAll('.opt').forEach((x,i)=>{ if(i===q.a) x.classList.add('right'); });
+          card.appendChild($(`<div style="background:#fff3e6;border-radius:12px;padding:12px;margin-top:12px;font-size:14px;color:#c9450c;line-height:1.6;">💡 ${q.why}</div>`));
+          logWrong({key:'rd:'+r.t+':'+qi, z:r.t, p:q.q, w:q.o[q.a], type:'reading'}, '阅读理解');
+        }
+        setTimeout(()=>{ if(qi<r.qs.length-1){qi++;render();} else finish(); }, oi===q.a?1100:2400);
+      };
+      grid.appendChild(b);
+    });
+    card.appendChild(grid);
+    app.appendChild(card);
+  }
+  function finish(){
+    logResult(correct, r.qs.length); endActivity(); sfxWin();
+    app.innerHTML='';
+    app.appendChild($(`<div class="card done"><div class="big">${correct===r.qs.length?'🏆':'💪'}</div><div class="msg">答对 ${correct}/${r.qs.length}<br>获得 ${correct*2}⭐</div></div>`));
+    app.appendChild($(`<button class="btn btn-primary" id="next">📖 再读一篇</button>`));
+    app.appendChild($(`<div style="height:12px"></div>`));
+    app.appendChild($(`<button class="btn btn-ghost" id="bk">回首页</button>`));
+    app.querySelector('#next').onclick=startReading;
+    app.querySelector('#bk').onclick=home;
+  }
+  render();
+}
+
+/* —— 错题专项（按到期）—— */
+function startReviewDrill(){
+  const due=dueWrongList();
+  if(!due.length){ toast('🎉 没有到期错字!',1500); return; }
+  startActivity('pinyin'); resetSession();
+  const qs=shuffle(due).slice(0,Math.min(15,due.length));
+  let idx=0,correct=0;
+  function render(){
+    const w=qs[idx];
+    const others=shuffle(ZISHI.filter(x=>x.p!==w.p)).filter((x,i,a)=>a.findIndex(y=>y.p===x.p)===i).slice(0,3);
+    const opts=shuffle([w,...others]);
+    app.innerHTML='';
+    app.appendChild($(`<div class="topbar"><button class="back">← 返回</button><div class="title-sm">📕 错字专项 (${idx+1}/${qs.length})</div></div>`));
+    app.querySelector('.back').onclick=home;
+    const card=$(`<div class="card"><div class="q-pic">${w.z}</div><div class="q-prompt">这个字的<b>拼音</b>是？</div></div>`);
+    const grid=$(`<div class="grid2"></div>`);
+    opts.forEach(o=>{
+      const b=$(`<div class="opt">${o.p}</div>`);
+      b.onclick=()=>{
+        if(b.dataset.done)return;
+        grid.querySelectorAll('.opt').forEach(x=>x.dataset.done='1');
+        if(o.p===w.p){
+          b.classList.add('right'); correct++; addStar(1); sfxRight(); toast(praise('review'),1100); answeredRight(w); speak(w.z);
+        }else{
+          b.classList.add('wrong'); sfxWrong(); toast('🤔'); logWrong(w);
+          grid.querySelectorAll('.opt').forEach(x=>{if(x.textContent===w.p)x.classList.add('right')});
+          card.appendChild($(`<div style="background:#fff3e6;border-radius:12px;padding:12px;margin-top:12px;font-size:14px;color:#c9450c;">💡 「${w.z}」读 <b>${w.p}</b>，例如「${w.w}」</div>`));
+          speak(w.z);
+        }
+        setTimeout(()=>{if(idx<qs.length-1){idx++;render()}else finish()}, o.p===w.p?1100:2400);
+      };
+      grid.appendChild(b);
+    });
+    card.appendChild(grid);
+    app.appendChild(card);
+  }
+  function finish(){
+    logResult(correct,qs.length); endActivity(); sfxWin();
+    app.innerHTML='';
+    app.appendChild($(`<div class="card done"><div class="big">🎯</div><div class="msg">错字攻克 ${correct}/${qs.length}<br>获得 ${correct}⭐</div></div>`));
+    app.appendChild($(`<button class="btn btn-primary" id="bk">回首页</button>`));
+    app.querySelector('#bk').onclick=home;
+  }
+  render();
+}
+
+/* ============================================================
    首页
    ============================================================ */
 function home(){
-  endActivity();
+  endActivity(); pomoStop();
   footHint.innerHTML='提示：第一次点发音可能没声音，再点一次即可。';
   app.innerHTML='';
   if(isNewCheckIn){isNewCheckIn=false;addStar(3);setTimeout(()=>toast('🎁 打卡+3⭐',1200),300)}
@@ -854,10 +1049,12 @@ function home(){
   app.appendChild($(`<div class="card">
     <div class="title-sm" style="margin-bottom:14px;">选一个玩法 👇</div>
     <div class="grid-modes">
-      <div class="mode btn-primary" data-go="zishi"><span class="emoji">📚</span><div class="t">生字认读</div><div class="d">字+拼音+词+释义</div></div>
+      <div class="mode btn-primary" data-go="zishi"><span class="emoji">📚</span><div class="t">生字认读</div><div class="d">字+拼音+词+笔顺</div></div>
       <div class="mode btn-blue" data-go="pinyin"><span class="emoji">🔤</span><div class="t">拼音练习</div><div class="d">字↔拼音 双向考</div></div>
       <div class="mode" style="background:linear-gradient(135deg,#9775fa,#4dabf7);" data-go="poem"><span class="emoji">📜</span><div class="t">古诗背诵</div><div class="d">课内8首+填空</div></div>
       <div class="mode btn-green" data-go="dictate"><span class="emoji">✍️</span><div class="t">词语听写</div><div class="d">家长辅助 · 自查</div></div>
+      <div class="mode" style="background:linear-gradient(135deg,#ff6b9d,#e8590c);" data-go="reading"><span class="emoji">📖</span><div class="t">阅读理解</div><div class="d">短文+提取信息</div></div>
+      <div class="mode btn-ghost" style="color:#c9450c;" data-go="review"><span class="emoji">📕</span><div class="t">错题专项</div><div class="d">优先到期错字</div></div>
     </div></div>`));
   app.querySelectorAll('[data-go]').forEach(el=>{
     el.onclick=()=>{
@@ -866,6 +1063,8 @@ function home(){
       else if(m==='pinyin') chooseLesson('pinyin');
       else if(m==='poem') startPoem();
       else if(m==='dictate') chooseLesson('dictate');
+      else if(m==='reading') startReading();
+      else if(m==='review') startReviewDrill();
     };
   });
 }
