@@ -988,11 +988,59 @@ function startReviewDrill(){
   let idx=0,correct=0;
   function render(){
     const w=qs[idx];
+    app.innerHTML='';
+    app.appendChild($(`<div class="topbar"><button class="back">← 返回</button><div class="title-sm">📕 错题专项 (${idx+1}/${qs.length})</div></div>`));
+    app.querySelector('.back').onclick=home;
+    const type = w.type || 'pinyin';
+
+    // —— 古诗错题：考"选出正确的诗句"，而不是拼音 ——
+    if(type==='poem'){
+      const allLines = POEMS.flatMap(po=>po.lines).filter(l=>l!==w.p);
+      const others = shuffle(allLines).slice(0,3);
+      const opts = shuffle([w.p, ...others]);
+      const card=$(`<div class="card"><div class="q-pic" style="font-size:30px;">📜 ${w.z}</div><div class="q-prompt">下面哪一句是<b>这首诗</b>里的？</div></div>`);
+      const grid=$(`<div></div>`);
+      opts.forEach(o=>{
+        const b=$(`<div class="opt" style="font-family:'STKaiti',serif;margin-bottom:10px;font-size:20px;">${o}</div>`);
+        b.onclick=()=>{
+          if(b.dataset.done)return;
+          grid.querySelectorAll('.opt').forEach(x=>x.dataset.done='1');
+          if(o===w.p){
+            b.classList.add('right'); correct++; addStar(1); sfxRight(); toast(praise('review'),1100); answeredRight(w); speak(w.p);
+          }else{
+            b.classList.add('wrong'); sfxWrong(); toast('🤔'); logWrong(w);
+            grid.querySelectorAll('.opt').forEach(x=>{if(x.textContent===w.p)x.classList.add('right')});
+            card.appendChild($(`<div style="background:#fff3e6;border-radius:12px;padding:12px;margin-top:12px;font-size:14px;color:#c9450c;">💡 《${w.z}》里是「${w.p}」</div>`));
+            speak(w.p);
+          }
+          setTimeout(()=>{if(idx<qs.length-1){idx++;render()}else finish()}, o===w.p?1100:2400);
+        };
+        grid.appendChild(b);
+      });
+      card.appendChild(grid);
+      app.appendChild(card);
+      return;
+    }
+
+    // —— 阅读理解错题：原题选项未存，做"重读+记答案"确认卡 ——
+    if(type==='reading'){
+      const card=$(`<div class="card"><div class="q-prompt" style="text-align:left;">📖 《${w.z}》</div><div class="q-prompt" style="text-align:left;">❓ ${w.p||''}</div><div style="background:#e6fcf5;border-radius:12px;padding:12px;margin-top:12px;font-size:15px;color:#0b7285;">✅ 正确答案：<b>${w.w||''}</b></div></div>`);
+      const grid=$(`<div></div>`);
+      const b=$(`<div class="opt">👍 我记住了</div>`);
+      b.onclick=()=>{
+        if(b.dataset.done)return; b.dataset.done='1';
+        b.classList.add('right'); addStar(1); sfxRight(); toast(praise('review'),1100); answeredRight(w);
+        setTimeout(()=>{if(idx<qs.length-1){idx++;render()}else finish()}, 1000);
+      };
+      grid.appendChild(b);
+      card.appendChild(grid);
+      app.appendChild(card);
+      return;
+    }
+
+    // —— 拼音/生字错题：考"这个字的拼音"（原逻辑）——
     const others=shuffle(ZISHI.filter(x=>x.p!==w.p)).filter((x,i,a)=>a.findIndex(y=>y.p===x.p)===i).slice(0,3);
     const opts=shuffle([w,...others]);
-    app.innerHTML='';
-    app.appendChild($(`<div class="topbar"><button class="back">← 返回</button><div class="title-sm">📕 错字专项 (${idx+1}/${qs.length})</div></div>`));
-    app.querySelector('.back').onclick=home;
     const card=$(`<div class="card"><div class="q-pic">${w.z}</div><div class="q-prompt">这个字的<b>拼音</b>是？</div></div>`);
     const grid=$(`<div class="grid2"></div>`);
     opts.forEach(o=>{
