@@ -342,7 +342,15 @@ function ymd(d){return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()}
 function parseDay(k){const[y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d)}
 function last7(){const a=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);a.push({key:ymd(d),dow:'日一二三四五六'[d.getDay()]})}return a}
 let streak=parseInt(localStorage.getItem('c_streak')||'0',10),totalDays=parseInt(localStorage.getItem('c_days')||'0',10);
-function checkIn(){const last=localStorage.getItem('c_lastday'),today=todayStr();if(last===today)return false;const y=new Date();y.setDate(y.getDate()-1);streak=(last===ymd(y))?streak+1:1;totalDays++;localStorage.setItem('c_streak',streak);localStorage.setItem('c_days',totalDays);localStorage.setItem('c_lastday',today);return true}
+let shield=parseInt(localStorage.getItem('c_shield')||'0',10); let _shieldUsed=false;
+function weekKey(){const d=new Date();const dow=(d.getDay()+6)%7;d.setDate(d.getDate()-dow);return ymd(d)}
+function checkIn(){const last=localStorage.getItem('c_lastday'),today=todayStr();if(last===today)return false;
+  if(localStorage.getItem('c_shield_week')!==weekKey()){shield=Math.min(2,shield+1);localStorage.setItem('c_shield_week',weekKey());localStorage.setItem('c_shield',shield);}
+  const y=new Date();y.setDate(y.getDate()-1);const y2=new Date();y2.setDate(y2.getDate()-2);
+  if(last===ymd(y)){streak=streak+1;}
+  else if(last===ymd(y2)&&shield>0){shield--;localStorage.setItem('c_shield',shield);streak=streak+1;_shieldUsed=true;}
+  else{streak=1;}
+  totalDays++;localStorage.setItem('c_streak',streak);localStorage.setItem('c_days',totalDays);localStorage.setItem('c_lastday',today);return true}
 let isNewCheckIn=checkIn();
 
 const MODE_NAME={zishi:'生字认读',pinyin:'拼音练习',poem:'古诗背诵',dictate:'词语听写'};
@@ -789,6 +797,13 @@ function dayDetailPage(date){
   </div>`));
 }
 
+function growthHtml(){
+  function sumCorrect(s,e){let c=0;for(let i=s;i<=e;i++){const d=new Date();d.setDate(d.getDate()-i);const b=LOG[ymd(d)];if(b)c+=b.correct||0;}return c;}
+  const wk=sumCorrect(0,6),lw=sumCorrect(7,13),diff=wk-lw;
+  const badge=diff>0?`<span style="color:#2b8a3e;font-weight:800;">↑ 比上周多对 ${diff} 题</span>`:diff<0?`<span style="color:#e8590c;font-weight:800;">比上周少 ${-diff} 题，加把劲 💪</span>`:`<span style="color:#1971c2;font-weight:800;">和上周持平，稳住 👍</span>`;
+  const wrong=Object.values(WRONG),near=wrong.filter(w=>(w.stage||0)>=3).length;
+  return `<div class="card"><div class="title-sm" style="margin-bottom:8px;">🌱 我的成长</div><div style="font-size:14px;line-height:1.9;">📈 本周做对 <b>${wk}</b> 题（上周 ${lw} 题）— ${badge}<br>🎓 错题本还剩 <b>${wrong.length}</b> 个待消化${near?`，其中 <b>${near}</b> 个快掌握啦`:''}</div></div>`;
+}
 function reportPage(){
   endActivity();
   app.innerHTML='';
@@ -813,6 +828,7 @@ function reportPage(){
     </div>
     <div style="font-size:14px;font-weight:700;margin:6px 0 2px;">各模块用时：</div>${modeRows}
   </div>`));
+  app.appendChild($(growthHtml()));   // 内在成长看板
   app.appendChild($(`<div class="card"><div class="title-sm" style="margin-bottom:8px;">📈 累计</div>
     <div style="font-size:14px;line-height:2;color:#555;">
       🔥 连续打卡 <b>${streak}</b> 天 ｜ 学习过 <b>${activeDays}</b> 天<br>
@@ -1088,12 +1104,13 @@ function home(){
   endActivity(); pomoStop();
   footHint.innerHTML='提示：第一次点发音可能没声音，再点一次即可。';
   app.innerHTML='';
-  if(isNewCheckIn){isNewCheckIn=false;addStar(3);setTimeout(()=>toast('🎁 打卡+3⭐',1200),300)}
+  if(isNewCheckIn){isNewCheckIn=false;addStar(3);setTimeout(()=>toast('🎁 打卡+3⭐',1200),300);
+    if(_shieldUsed){_shieldUsed=false;setTimeout(()=>toast('🛡️ 补签卡帮你保住了连续打卡！',2600),1400);}}
   const li=levelInfo();
   const banner=$(`<div class="card" style="background:linear-gradient(135deg,#fff,#ffe8cc);cursor:pointer;">
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div><div style="font-size:20px;font-weight:800;">${li.emoji} ${li.title}</div>
-      <div style="font-size:13px;color:#8a8a8a;margin-top:4px;">🔥 连续打卡 <b>${streak}</b> 天 ｜ 累计 <b>${totalDays}</b> 天 ｜ ⭐ ${stars}</div></div>
+      <div style="font-size:13px;color:#8a8a8a;margin-top:4px;">🔥 连续打卡 <b>${streak}</b> 天 ｜ 🛡️ <b>${shield}</b> 补签卡 ｜ ⭐ ${stars}</div></div>
       <div style="font-size:40px;">${li.emoji}</div>
     </div>
     <div class="bar" style="margin:12px 0 4px;"><i style="width:${li.pct}%;background:linear-gradient(90deg,#e8590c,#ffc078);"></i></div>
